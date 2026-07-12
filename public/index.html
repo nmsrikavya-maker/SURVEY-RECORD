@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Survey Data</title>
+<title>Survey Data Portal</title>
 <style>
   :root{
     --sky-1:#eef8fe;
@@ -213,7 +213,7 @@
     letter-spacing:0.2px;
   }
 
-  input[type=text], input[type=tel], input[type=number], textarea, select{
+  input[type=text], input[type=tel], input[type=number], input[type=email], input[type=password], textarea, select{
     border:1.5px solid var(--line);
     background:var(--paper-soft);
     border-radius:999px;
@@ -477,6 +477,86 @@
   .confirm-box p{margin:0 0 18px; color:var(--ink); font-size:14.5px;}
   .confirm-row{display:flex; gap:10px; justify-content:center;}
 
+  /* --- LOGIN & WELCOME BOARD STYLES --- */
+  .auth-card {
+    max-width: 420px;
+    margin: 60px auto;
+  }
+  .welcome-board {
+    background: linear-gradient(135deg, var(--navy), var(--blue-deep));
+    color: white;
+    border-radius: 22px;
+    padding: 40px;
+    text-align: center;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 320px;
+    animation: zoomReveal 0.6s cubic-bezier(.17,.67,.43,1.13) both;
+  }
+  @keyframes zoomReveal {
+    from { opacity: 0; transform: scale(0.8) translateY(30px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .survey-anim-icon {
+    font-size: 56px;
+    margin-bottom: 20px;
+    animation: continuousPulse 2.5s ease-in-out infinite;
+  }
+  @keyframes continuousPulse {
+    0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0px rgba(255,255,255,0)); }
+    50% { transform: scale(1.1); filter: drop-shadow(0 0 15px var(--accent)); }
+  }
+  .welcome-title {
+    font-size: 26px;
+    font-weight: 800;
+    margin: 0 0 10px 0;
+    letter-spacing: 0.5px;
+    background: linear-gradient(to right, #fff, var(--sky-2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .welcome-bar-loader {
+    width: 140px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 99px;
+    margin-top: 25px;
+    overflow: hidden;
+    position: relative;
+  }
+  .welcome-bar-loader::after {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; height: 100%; width: 50%;
+    background: var(--accent);
+    border-radius: 99px;
+    animation: loadingMove 1.5s ease-in-out infinite;
+  }
+  @keyframes loadingMove {
+    0% { left: -50%; width: 30%; }
+    50% { width: 60%; }
+    100% { left: 120%; width: 30%; }
+  }
+  .logout-btn {
+    background: transparent;
+    border: 1px solid rgba(19, 65, 102, 0.4);
+    color: var(--navy);
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .logout-btn:hover {
+    background: var(--danger);
+    color: white;
+    border-color: var(--danger);
+  }
+
   @media (max-width: 640px){
     .grid{grid-template-columns: 1fr;}
     .card{padding:22px 18px 20px;}
@@ -497,17 +577,22 @@
 </div>
 
 <div class="wrap">
-  <div class="brand">
-    <div class="brand-left">
-      <div class="brand-mark">☁️</div>
-      <div>
-        <div class="brand-title">Survey Data Entry</div>
-        <div class="brand-sub">Beneficiary records &amp; enquiries</div>
+  <div id="portalHeader" style="display:none;">
+    <div class="brand">
+      <div class="brand-left">
+        <div class="brand-mark">📋</div>
+        <div>
+          <div class="brand-title">Survey Data Entry</div>
+          <div class="brand-sub">Beneficiary records &amp; enquiries</div>
+        </div>
       </div>
-    </div>
-    <div class="nav">
-      <button id="navEntry" class="active">Data Entry</button>
-      <button id="navEnquiries">Enquiries</button>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <button class="logout-btn" id="logoutBtn">Logout</button>
+        <div class="nav">
+          <button id="navEntry" class="active">Data Entry</button>
+          <button id="navEnquiries">Enquiries</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -529,6 +614,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCHmdn_SxpCWrwlHEb_H4bdp2_vsL0ei2c",
@@ -542,6 +628,7 @@
 
   const firebaseApp = initializeApp(firebaseConfig);
   const db = getFirestore(firebaseApp);
+  const auth = getAuth(firebaseApp);
 
   const FIELDS = [
     {key:'name', label:'Name', type:'text', full:false},
@@ -565,9 +652,11 @@
   ];
 
   const app = document.getElementById('app');
+  const portalHeader = document.getElementById('portalHeader');
   const toastEl = document.getElementById('toast');
   const navEntry = document.getElementById('navEntry');
   const navEnquiries = document.getElementById('navEnquiries');
+  const logoutBtn = document.getElementById('logoutBtn');
   const confirmOverlay = document.getElementById('confirmOverlay');
   const confirmText = document.getElementById('confirmText');
   const confirmCancel = document.getElementById('confirmCancel');
@@ -575,7 +664,7 @@
   const skyDeco = document.querySelector('.sky-deco');
 
   let records = [];
-  let view = 'entry';       
+  let view = 'login';       
   let editingId = null;     
   let selectedId = null;    
   let searchTerm = '';
@@ -618,6 +707,11 @@
 
   function setView(v){
     view = v;
+    if (v === 'login' || v === 'welcome') {
+      portalHeader.style.display = 'none';
+    } else {
+      portalHeader.style.display = 'block';
+    }
     navEntry.classList.toggle('active', v === 'entry');
     navEnquiries.classList.toggle('active', v === 'enquiries' || v === 'details');
     render();
@@ -627,6 +721,14 @@
   navEnquiries.addEventListener('click', async ()=> {
     await loadRecords();
     setView('enquiries');
+  });
+
+  logoutBtn.addEventListener('click', () => {
+    signOut(auth).then(() => {
+      showToast("Logged out successfully");
+    }).catch((err) => {
+      showToast("Error logging out");
+    });
   });
 
   confirmCancel.addEventListener('click', () => {
@@ -668,6 +770,64 @@
     return String(str).replace(/[&<>"']/g, s => ({
       '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
     }[s]));
+  }
+
+  function renderLogin() {
+    app.innerHTML = `
+      <div class="card auth-card">
+        <h1>🔒 Secure Access</h1>
+        <p class="lead">Please enter authorized credentials to access survey dashboard.</p>
+        <div class="grid">
+          <div class="field full">
+            <label for="loginEmail">Email Address</label>
+            <input type="email" id="loginEmail" placeholder="admin@survey.com">
+          </div>
+          <div class="field full">
+            <label for="loginPassword">Password</label>
+            <input type="password" id="loginPassword" placeholder="••••••••">
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="primary" id="loginSubmitBtn" style="width:100%;">Authenticate &amp; Enter</button>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('loginSubmitBtn').addEventListener('click', async () => {
+      const email = document.getElementById('loginEmail').value.trim();
+      const pass = document.getElementById('loginPassword').value;
+
+      if(!email || !pass) {
+        showToast("Please input both credentials.");
+        return;
+      }
+
+      try {
+        await signInWithEmailAndPassword(auth, email, pass);
+        showToast("Identity verified");
+      } catch(err) {
+        console.error(err);
+        showToast("Invalid user ID or authentication key.");
+      }
+    });
+  }
+
+  function renderWelcome() {
+    app.innerHTML = `
+      <div class="welcome-board">
+        <div class="survey-anim-icon">🏛️</div>
+        <h2 class="welcome-title">Government Survey Management</h2>
+        <p style="margin:0; opacity:0.85; font-size:14px; max-width:280px; line-height:1.5;">
+          Synchronizing verified records and cloud infrastructure assets...
+        </p>
+        <div class="welcome-bar-loader"></div>
+      </div>
+    `;
+
+    setTimeout(async () => {
+      await loadRecords();
+      setView('entry');
+    }, 2800);
   }
 
   function renderEntry(){
@@ -872,15 +1032,27 @@
   }
 
   function render(){
-    if(view === 'entry') renderEntry();
+    if(view === 'login') renderLogin();
+    else if(view === 'welcome') renderWelcome();
+    else if(view === 'entry') renderEntry();
     else if(view === 'enquiries') renderEnquiries();
     else if(view === 'details') renderDetails();
   }
 
-  (async function init(){
-    await loadRecords();
-    render();
-  })();
+  // Monitor Authentication state changing
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      // If user logs in, show welcome page loader animations
+      if(view === 'login') {
+        setView('welcome');
+      }
+    } else {
+      // Return back to security clearance
+      setView('login');
+    }
+  });
+
+})();
 </script>
 </body>
 </html>
