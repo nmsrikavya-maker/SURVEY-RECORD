@@ -644,7 +644,6 @@
     .brand-title{font-size:17px;}
   }
 
-  /* Authentication Portal Custom CSS Layout styles */
   .auth-container {
     max-width: 420px;
     margin: 40px auto;
@@ -754,7 +753,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
   import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
   const firebaseConfig = {
@@ -849,10 +848,16 @@
     setTimeout(()=> toastEl.classList.remove('show'), 2200);
   }
 
+  // UPDATED: Now queries ONLY documents created by the current user's UID
   async function loadRecords(force){
     if(recordsLoaded && !force) return;
+    if(!auth.currentUser) return;
     try{
-      const querySnapshot = await getDocs(collection(db, "responses"));
+      const userRecordsQuery = query(
+        collection(db, "responses"), 
+        where("createdBy", "==", auth.currentUser.uid)
+      );
+      const querySnapshot = await getDocs(userRecordsQuery);
       records = [];
       querySnapshot.forEach((doc) => {
         records.push({ id: doc.id, ...doc.data() });
@@ -1060,6 +1065,9 @@
         return;
       }
       data.photo = photoData;
+      
+      // UPDATED: Bind record explicitly to active user context
+      data.createdBy = auth.currentUser.uid;
 
       saveBtn.classList.add('loading');
       saveBtn.disabled = true;
@@ -1103,11 +1111,11 @@
     app.innerHTML = `
       <div class="card">
         <h1>🔎 Enquiries</h1>
-        <p class="lead">All saved survey records. Search by name, phone, aadhar, address, bank, or any other detail from Data Entry — click a name to view full details.</p>
+        <p class="lead">Your saved survey records. Search by name, phone, aadhar, address, bank — click a name to view full details.</p>
         <div class="enquiry-toolbar">
           <div class="search-bar">
             <span class="search-icon">&#128269;</span>
-            <input type="text" id="searchInput" placeholder="Search by name, phone, aadhar, address..." value="${escapeHtml(searchTerm)}">
+            <input type="text" id="searchInput" placeholder="Search your database entries..." value="${escapeHtml(searchTerm)}">
           </div>
           <div class="sort-wrap">
             <span class="sort-icon">⇅</span>
@@ -1260,10 +1268,7 @@
     else if(view === 'details') renderDetails();
   }
 
-  // ==========================================
-  // IDENTITY ENTRY ARCHITECTURE & WORKFLOW
-  // ==========================================
-  let authMode = 'register'; // Context states: 'register' or 'login'
+  let authMode = 'register'; 
   const emailInput = document.getElementById('authEmailInput');
   const passwordInput = document.getElementById('authPasswordInput');
   const btnSubmitCredential = document.getElementById('btnSubmitCredential');
@@ -1274,7 +1279,6 @@
   const authSubtitle = document.getElementById('authSubtitle');
   const authToggleMessage = document.getElementById('authToggleMessage');
 
-  // Toggle Between Register and Login views
   authToggleAction.addEventListener('click', () => {
     if (authMode === 'register') {
       authMode = 'login';
@@ -1289,11 +1293,9 @@
       btnSubmitCredential.textContent = 'Register Account';
       authToggleMessage.innerHTML = `Already have an account? <span id="authToggleAction">Sign In</span>`;
     }
-    // Re-bind click event to the newly generated innerHTML dynamic target span
     document.getElementById('authToggleAction').addEventListener('click', arguments.callee);
   });
 
-  // Handle Form Registration / Log In Processing
   btnSubmitCredential.addEventListener('click', async () => {
     const email = emailInput.value.trim();
     const password = passwordInput.value.trim();
@@ -1317,7 +1319,6 @@
     }
   });
 
-  // Handle Google OAuth Pop-ups
   btnGoogleAuth.addEventListener('click', async () => {
     try {
       await signInWithPopup(auth, googleProvider);
@@ -1328,7 +1329,6 @@
     }
   });
 
-  // Handle App Terminate Session Actions
   navLogout.addEventListener('click', async () => {
     try {
       await signOut(auth);
@@ -1340,13 +1340,13 @@
     }
   });
 
-  // Core Orchestration Initializer
   (async function init(){
-    // Observe state modifications across system context levels
     onAuthStateChanged(auth, async (user) => {
       if (user) {
         authenticationScreenGateway.style.display = 'none';
         mainApplicationContent.style.display = 'block';
+        // Reset loader configurations on user alteration checks
+        recordsLoaded = false; 
         await loadRecords();
         setView('entry');
       } else {
