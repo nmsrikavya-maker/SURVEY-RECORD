@@ -47,6 +47,7 @@
     padding: 28px 16px 60px;
   }
 
+  /* drifting cloud / bubble ambience */
   .sky-deco{
     position:fixed;
     inset:0;
@@ -312,6 +313,7 @@
   button:active{transform:translateY(0) scale(.98);}
   button:disabled{opacity:0.5; cursor:not-allowed; transform:none;}
 
+  /* Page 2 - Enquiries */
   .search-bar{
     display:flex;
     align-items:center;
@@ -331,9 +333,8 @@
     border:none;
     background:transparent;
     padding:6px 4px;
-    width: 100%;
-    outline: none;
   }
+  .search-bar input:focus{box-shadow:none;}
   .search-icon{color:var(--muted); font-size:15px;}
 
   table{
@@ -385,6 +386,7 @@
   }
   .empty-state .big{font-size:38px; margin-bottom:10px; display:inline-block; animation: gentleBob 3.4s ease-in-out infinite;}
 
+  /* Page 3 - Details */
   .detail-header{
     display:flex;
     justify-content:space-between;
@@ -526,22 +528,8 @@
   </div>
 </div>
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyCHmdn_SxpCWrwlHEb_H4bdp2_vsL0ei2c",
-    authDomain: "survey-record.firebaseapp.com",
-    projectId: "survey-record",
-    storageBucket: "survey-record.firebasestorage.app",
-    messagingSenderId: "676572314336",
-    appId: "1:676572314336:web:72adc0dc2eec53c60fae85",
-    measurementId: "G-VXY70DY4V1"
-  };
-
-  const firebaseApp = initializeApp(firebaseConfig);
-  const db = getFirestore(firebaseApp);
+<script>
+(function(){
 
   const FIELDS = [
     {key:'name', label:'Name', type:'text', full:false},
@@ -575,9 +563,9 @@
   const skyDeco = document.querySelector('.sky-deco');
 
   let records = [];
-  let view = 'entry';       
-  let editingId = null;     
-  let selectedId = null;    
+  let view = 'entry';       // 'entry' | 'enquiries' | 'details'
+  let editingId = null;     // id being edited on entry form
+  let selectedId = null;    // id shown on details page
   let searchTerm = '';
   let pendingDeleteId = null;
 
@@ -605,14 +593,18 @@
 
   async function loadRecords(){
     try{
-      const querySnapshot = await getDocs(collection(db, "responses"));
-      records = [];
-      querySnapshot.forEach((doc) => {
-        records.push({ id: doc.id, ...doc.data() });
-      });
+      const res = await window.storage.get('survey-records', false);
+      records = res && res.value ? JSON.parse(res.value) : [];
     }catch(e){
-      console.error(e);
-      showToast("Failed to load records from database.");
+      records = [];
+    }
+  }
+
+  async function persist(){
+    try{
+      await window.storage.set('survey-records', JSON.stringify(records), false);
+    }catch(e){
+      showToast("Couldn't save — please try again");
     }
   }
 
@@ -624,28 +616,20 @@
   }
 
   navEntry.addEventListener('click', ()=>{ editingId = null; setView('entry'); });
-  navEnquiries.addEventListener('click', async ()=> {
-    await loadRecords();
-    setView('enquiries');
-  });
+  navEnquiries.addEventListener('click', ()=> setView('enquiries'));
 
-  confirmCancel.addEventListener('click', () => {
+  confirmCancel.addEventListener('click', ()=>{
     confirmOverlay.classList.remove('show');
     pendingDeleteId = null;
   });
-
-  confirmOk.addEventListener('click', async () => {
+  confirmOk.addEventListener('click', async ()=>{
     if(pendingDeleteId){
-      try {
-        await deleteDoc(doc(db, "responses", pendingDeleteId));
-        records = records.filter(r => r.id !== pendingDeleteId);
-        showToast('Record deleted permanently from cloud');
-        pendingDeleteId = null;
-        confirmOverlay.classList.remove('show');
-        setView('enquiries');
-      } catch (error) {
-        showToast("Error deleting document.");
-      }
+      records = records.filter(r => r.id !== pendingDeleteId);
+      await persist();
+      showToast('Record deleted');
+      pendingDeleteId = null;
+      confirmOverlay.classList.remove('show');
+      setView('enquiries');
     }
   });
 
@@ -714,10 +698,7 @@
       reader.readAsDataURL(file);
     });
 
-    document.getElementById('goEnquiriesBtn').addEventListener('click', async () => {
-      await loadRecords();
-      setView('enquiries');
-    });
+    document.getElementById('goEnquiriesBtn').addEventListener('click', () => setView('enquiries'));
 
     const cancelBtn = document.getElementById('cancelEditBtn');
     if(cancelBtn){
@@ -738,30 +719,22 @@
       data.photo = photoData;
 
       if(editingId){
-        try {
-          await updateDoc(doc(db, "responses", editingId), data);
-          const idx = records.findIndex(r => r.id === editingId);
-          if(idx > -1){
-            records[idx] = { ...records[idx], ...data };
-          }
-          showToast('Record updated in cloud');
-          const savedId = editingId;
-          editingId = null;
-          selectedId = savedId;
-          setView('details');
-        } catch (err) {
-          showToast("Failed to update data in cloud.");
+        const idx = records.findIndex(r => r.id === editingId);
+        if(idx > -1){
+          records[idx] = { ...records[idx], ...data };
         }
+        await persist();
+        showToast('Record updated');
+        const savedId = editingId;
+        editingId = null;
+        selectedId = savedId;
+        setView('details');
       } else {
-        try {
-          data.createdAt = new Date().toISOString();
-          const docRef = await addDoc(collection(db, "responses"), data);
-          records.push({ id: docRef.id, ...data });
-          showToast('Record permanently saved to Firebase cloud');
-          setView('entry');
-        } catch (err) {
-          showToast("Failed to save data to cloud.");
-        }
+        const newRecord = { id: 'rec_' + Date.now() + '_' + Math.random().toString(36).slice(2,7), ...data, createdAt: new Date().toISOString() };
+        records.push(newRecord);
+        await persist();
+        showToast('Record saved');
+        setView('entry');
       }
     });
   }
@@ -881,6 +854,52 @@
     await loadRecords();
     render();
   })();
+
+})();
+</script>
+<script type="module">
+  // 1. Core Firebase tools
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  // 2. Your project credentials from your screen
+  const firebaseConfig = {
+    apiKey: "AIzaSyCHmdn_SxpCWrwlHEb_H4bdp2_vsL0ei2c",
+    authDomain: "survey-record.firebaseapp.com",
+    projectId: "survey-record",
+    storageBucket: "survey-record.firebasestorage.app",
+    messagingSenderId: "676572314336",
+    appId: "1:676572314336:web:72adc0dc2eec53c60fae85",
+    measurementId: "G-VXY70DY4V1"
+  };
+
+  // 3. Wakes up the database context
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // 4. Catches the form submit event
+  const surveyForm = document.getElementById('surveyForm'); 
+
+  surveyForm.addEventListener('submit', async (e) => {
+    e.preventDefault(); // This is the magic line that stops the page from refreshing!
+
+    // Gather values using your HTML elements' IDs
+    const formData = {
+      name: document.getElementById('nameInput').value,
+      email: document.getElementById('emailInput').value,
+      timestamp: new Date()
+    };
+
+    try {
+      // Pushes the data permanently to your Firestore database
+      await addDoc(collection(db, "responses"), formData);
+      alert("Success! Data permanently saved to the cloud.");
+      surveyForm.reset(); // Clears out your form boxes for the next entry
+    } catch (error) {
+      console.error("Database connection failed: ", error);
+      alert("Error saving data. Check your Firestore rules tab.");
+    }
+  });
 </script>
 </body>
 </html>
