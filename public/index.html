@@ -47,7 +47,6 @@
     padding: 28px 16px 60px;
   }
 
-  /* drifting cloud / bubble ambience */
   .sky-deco{
     position:fixed;
     inset:0;
@@ -246,6 +245,7 @@
     display:flex;
     align-items:center;
     gap:14px;
+    flex-wrap:wrap;
     transition: border-color .2s ease, background .2s ease;
   }
   .photo-box:hover{ border-color:var(--blue-mid); background:#eaf7ff; }
@@ -263,6 +263,29 @@
     to{ transform:scale(1); opacity:1; }
   }
   .photo-box input[type=file]{font-size:12.5px;}
+  .photo-actions{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  .photo-remove-btn{
+    display:none;
+    align-items:center;
+    gap:6px;
+    border:1.5px solid var(--danger);
+    background:#fff;
+    color:var(--danger);
+    font-size:12.5px;
+    font-weight:700;
+    padding:7px 14px;
+    border-radius:999px;
+    cursor:pointer;
+    transition: transform .14s ease, filter .14s ease, background .14s ease;
+  }
+  .photo-remove-btn.show{display:inline-flex; animation: fieldIn .25s ease both;}
+  .photo-remove-btn:hover{ background:#fff5f6; transform:translateY(-1px); }
+  .photo-remove-btn:active{ transform:translateY(0) scale(.98); }
 
   .btn-row{
     display:flex;
@@ -312,8 +335,25 @@
   button.primary:hover{ box-shadow:0 12px 26px rgba(31,111,163,0.45); }
   button:active{transform:translateY(0) scale(.98);}
   button:disabled{opacity:0.5; cursor:not-allowed; transform:none;}
+  button.loading{ color:transparent !important; pointer-events:none; }
+  button .btn-spinner{
+    display:none;
+    position:absolute;
+    top:50%; left:50%;
+    width:16px; height:16px;
+    margin:-8px 0 0 -8px;
+    border:2px solid rgba(255,255,255,0.45);
+    border-top-color:#fff;
+    border-radius:50%;
+    animation: spin .7s linear infinite;
+  }
+  button.secondary .btn-spinner, button.ghost .btn-spinner, button.danger .btn-spinner{
+    border:2px solid rgba(31,111,163,0.25);
+    border-top-color: var(--blue-deep);
+  }
+  button.loading .btn-spinner{ display:block; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
 
-  /* Page 2 - Enquiries */
   .search-bar{
     display:flex;
     align-items:center;
@@ -333,9 +373,70 @@
     border:none;
     background:transparent;
     padding:6px 4px;
+    width: 100%;
+    outline: none;
   }
-  .search-bar input:focus{box-shadow:none;}
   .search-icon{color:var(--muted); font-size:15px;}
+
+  .enquiry-toolbar{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    margin-bottom:20px;
+  }
+  .enquiry-toolbar .search-bar{
+    flex:1 1 240px;
+    margin-bottom:0;
+  }
+  .sort-wrap{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background:var(--paper-soft);
+    border:1.5px solid var(--line);
+    border-radius:999px;
+    padding:8px 16px 8px 14px;
+    transition: border-color .18s ease, box-shadow .18s ease;
+  }
+  .sort-wrap:focus-within{
+    border-color: var(--blue-mid);
+    box-shadow: 0 0 0 4px rgba(95,179,224,0.18);
+  }
+  .sort-wrap .sort-icon{ font-size:13px; color:var(--muted); }
+  .sort-wrap select{
+    border:none;
+    background:transparent;
+    padding:2px 22px 2px 2px;
+    width:auto;
+    font-size:13px;
+    font-weight:700;
+    color:var(--blue-deep);
+    cursor:pointer;
+  }
+  .match-tag{
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    font-size:11px;
+    font-weight:700;
+    color:var(--blue-deep);
+    background:#eaf6fd;
+    border:1px solid var(--baby-blue);
+    padding:3px 10px;
+    border-radius:999px;
+    margin-left:9px;
+    vertical-align:middle;
+    animation: fieldIn .3s ease both;
+  }
+  .match-tag .match-icon{ font-size:11px; }
+  .name-cell{ display:flex; align-items:center; flex-wrap:wrap; gap:2px; }
+  .result-count{
+    font-size:12px;
+    color:var(--muted);
+    font-weight:600;
+    margin: -8px 0 14px;
+    animation: fieldIn .3s ease both;
+  }
 
   table{
     width:100%;
@@ -386,7 +487,6 @@
   }
   .empty-state .big{font-size:38px; margin-bottom:10px; display:inline-block; animation: gentleBob 3.4s ease-in-out infinite;}
 
-  /* Page 3 - Details */
   .detail-header{
     display:flex;
     justify-content:space-between;
@@ -479,6 +579,62 @@
   .confirm-box p{margin:0 0 18px; color:var(--ink); font-size:14.5px;}
   .confirm-row{display:flex; gap:10px; justify-content:center;}
 
+  .welcome-overlay{
+    position:fixed;
+    inset:0;
+    z-index:100;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    background:
+      radial-gradient(circle at 15% 12%, rgba(255,255,255,0.55) 0, rgba(255,255,255,0) 40%),
+      radial-gradient(circle at 85% 8%, rgba(255,255,255,0.35) 0, rgba(255,255,255,0) 35%),
+      linear-gradient(160deg, var(--sky-1) 0%, var(--sky-2) 30%, var(--baby-blue) 62%, var(--blue-mid) 100%);
+    cursor:pointer;
+    transition: opacity .55s ease, visibility .55s ease;
+  }
+  .welcome-overlay.hide{
+    opacity:0;
+    visibility:hidden;
+    pointer-events:none;
+  }
+  .welcome-emoji{
+    font-size:52px;
+    margin-bottom:14px;
+    display:inline-block;
+    animation: gentleBob 3s ease-in-out infinite;
+  }
+  .welcome-text{
+    font-size:clamp(36px, 7vw, 60px);
+    font-weight:800;
+    color:var(--navy);
+    letter-spacing:0.5px;
+    margin:0;
+    animation: welcomePop .9s cubic-bezier(.34,1.56,.64,1) both;
+  }
+  .welcome-sub{
+    margin:12px 0 0;
+    font-size:15px;
+    font-weight:600;
+    color:var(--blue-deep);
+    opacity:0;
+    animation: fieldIn .6s ease .35s forwards;
+  }
+  .welcome-hint{
+    margin:26px 0 0;
+    font-size:12px;
+    color:var(--muted);
+    opacity:0;
+    animation: fieldIn .6s ease .7s forwards;
+  }
+  @keyframes welcomePop{
+    0%{ transform:scale(0.25) rotate(-6deg); opacity:0; }
+    55%{ transform:scale(1.18) rotate(2deg); opacity:1; }
+    75%{ transform:scale(0.94) rotate(-1deg); }
+    100%{ transform:scale(1) rotate(0deg); opacity:1; }
+  }
+
   @media (max-width: 640px){
     .grid{grid-template-columns: 1fr;}
     .card{padding:22px 18px 20px;}
@@ -490,6 +646,15 @@
 </style>
 </head>
 <body>
+
+<div class="welcome-overlay" id="welcomeOverlay">
+  <div>
+    <div class="welcome-emoji">☁️</div>
+    <h1 class="welcome-text">Welcome!</h1>
+    <p class="welcome-sub">Survey Data Entry &amp; Enquiries</p>
+    <p class="welcome-hint">Tap anywhere to continue</p>
+  </div>
+</div>
 
 <div class="sky-deco" aria-hidden="true">
   <div class="cloud c1"></div>
@@ -528,8 +693,22 @@
   </div>
 </div>
 
-<script>
-(function(){
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCHmdn_SxpCWrwlHEb_H4bdp2_vsL0ei2c",
+    authDomain: "survey-record.firebaseapp.com",
+    projectId: "survey-record",
+    storageBucket: "survey-record.firebasestorage.app",
+    messagingSenderId: "676572314336",
+    appId: "1:676572314336:web:72adc0dc2eec53c60fae85",
+    measurementId: "G-VXY70DY4V1"
+  };
+
+  const firebaseApp = initializeApp(firebaseConfig);
+  const db = getFirestore(firebaseApp);
 
   const FIELDS = [
     {key:'name', label:'Name', type:'text', full:false},
@@ -561,12 +740,25 @@
   const confirmCancel = document.getElementById('confirmCancel');
   const confirmOk = document.getElementById('confirmOk');
   const skyDeco = document.querySelector('.sky-deco');
+  const welcomeOverlay = document.getElementById('welcomeOverlay');
+
+  function dismissWelcome(){
+    if(!welcomeOverlay || welcomeOverlay.classList.contains('hide')) return;
+    welcomeOverlay.classList.add('hide');
+    setTimeout(() => welcomeOverlay.remove(), 600);
+  }
+  if(welcomeOverlay){
+    welcomeOverlay.addEventListener('click', dismissWelcome);
+    setTimeout(dismissWelcome, 2200);
+  }
 
   let records = [];
-  let view = 'entry';       // 'entry' | 'enquiries' | 'details'
-  let editingId = null;     // id being edited on entry form
-  let selectedId = null;    // id shown on details page
+  let recordsLoaded = false;
+  let view = 'entry';       
+  let editingId = null;     
+  let selectedId = null;    
   let searchTerm = '';
+  let sortMode = 'newest';
   let pendingDeleteId = null;
 
   function spawnBubbles(){
@@ -591,20 +783,18 @@
     setTimeout(()=> toastEl.classList.remove('show'), 2200);
   }
 
-  async function loadRecords(){
+  async function loadRecords(force){
+    if(recordsLoaded && !force) return;
     try{
-      const res = await window.storage.get('survey-records', false);
-      records = res && res.value ? JSON.parse(res.value) : [];
-    }catch(e){
+      const querySnapshot = await getDocs(collection(db, "responses"));
       records = [];
-    }
-  }
-
-  async function persist(){
-    try{
-      await window.storage.set('survey-records', JSON.stringify(records), false);
+      querySnapshot.forEach((doc) => {
+        records.push({ id: doc.id, ...doc.data() });
+      });
+      recordsLoaded = true;
     }catch(e){
-      showToast("Couldn't save — please try again");
+      console.error(e);
+      showToast("Failed to load records from database.");
     }
   }
 
@@ -616,20 +806,28 @@
   }
 
   navEntry.addEventListener('click', ()=>{ editingId = null; setView('entry'); });
-  navEnquiries.addEventListener('click', ()=> setView('enquiries'));
+  navEnquiries.addEventListener('click', async ()=> {
+    await loadRecords();
+    setView('enquiries');
+  });
 
-  confirmCancel.addEventListener('click', ()=>{
+  confirmCancel.addEventListener('click', () => {
     confirmOverlay.classList.remove('show');
     pendingDeleteId = null;
   });
-  confirmOk.addEventListener('click', async ()=>{
+
+  confirmOk.addEventListener('click', async () => {
     if(pendingDeleteId){
-      records = records.filter(r => r.id !== pendingDeleteId);
-      await persist();
-      showToast('Record deleted');
-      pendingDeleteId = null;
-      confirmOverlay.classList.remove('show');
-      setView('enquiries');
+      try {
+        await deleteDoc(doc(db, "responses", pendingDeleteId));
+        records = records.filter(r => r.id !== pendingDeleteId);
+        showToast('Record deleted permanently from cloud');
+        pendingDeleteId = null;
+        confirmOverlay.classList.remove('show');
+        setView('enquiries');
+      } catch (error) {
+        showToast("Error deleting document.");
+      }
     }
   });
 
@@ -654,10 +852,75 @@
     }[s]));
   }
 
+  // Searches every field entered on the Data Entry page (page 1), not just the name,
+  // so a record saved there can be found from the Enquiries search bar (page 2)
+  // even though its full details only display on the detail page (page 3).
+  function recordMatchesTerm(r, term){
+    if(!term) return true;
+    const t = term.toLowerCase();
+    return FIELDS.some(f => (r[f.key] || '').toString().toLowerCase().includes(t));
+  }
+
+  function firstMatchedField(r, term){
+    if(!term) return null;
+    const t = term.toLowerCase();
+    return FIELDS.find(f => f.key !== 'name' && (r[f.key] || '').toString().toLowerCase().includes(t)) || null;
+  }
+
+  function sortRecordList(list, mode){
+    const arr = list.slice();
+    if(mode === 'name-asc'){
+      arr.sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, {sensitivity:'base'}));
+    } else if(mode === 'name-desc'){
+      arr.sort((a, b) => (b.name || '').localeCompare(a.name || '', undefined, {sensitivity:'base'}));
+    } else if(mode === 'oldest'){
+      arr.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
+    } else {
+      arr.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    }
+    return arr;
+  }
+
+  // Shrinks uploaded photos client-side before they're stored. Full-resolution phone
+  // photos as base64 are the main reason saves/updates and the Enquiries load felt slow —
+  // resizing to a sane max dimension and re-encoding as compressed JPEG cuts that payload
+  // down drastically (often 10x+) without a visible quality loss for a thumbnail/detail view.
+  function compressImage(file, maxDim = 900, quality = 0.72){
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error('Could not read file'));
+      reader.onload = () => {
+        const img = new Image();
+        img.onerror = () => reject(new Error('Could not read image'));
+        img.onload = () => {
+          let { width, height } = img;
+          if(width > maxDim || height > maxDim){
+            if(width >= height){
+              height = Math.round(height * (maxDim / width));
+              width = maxDim;
+            } else {
+              width = Math.round(width * (maxDim / height));
+              height = maxDim;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
   function renderEntry(){
     const editingRecord = editingId ? records.find(r => r.id === editingId) : null;
     const heading = editingRecord ? 'Edit Record' : 'New Survey Record';
     const sub = editingRecord ? `Updating details for ${escapeHtml(editingRecord.name || 'this beneficiary')}.` : 'Fill in the beneficiary details below.';
+    const hasPhoto = !!(editingRecord && editingRecord.photo);
 
     app.innerHTML = `
       <div class="card">
@@ -668,37 +931,55 @@
           <div class="field full">
             <label>Photo Upload</label>
             <div class="photo-box">
-              <img id="photoPreview" class="photo-preview ${editingRecord && editingRecord.photo ? 'show' : ''}" src="${editingRecord && editingRecord.photo ? editingRecord.photo : ''}">
-              <input type="file" id="photoInput" accept="image/*">
+              <img id="photoPreview" class="photo-preview ${hasPhoto ? 'show' : ''}" src="${hasPhoto ? editingRecord.photo : ''}">
+              <div class="photo-actions">
+                <input type="file" id="photoInput" accept="image/*">
+                <button type="button" class="photo-remove-btn ${hasPhoto ? 'show' : ''}" id="removePhotoBtn">✕ Remove Photo</button>
+              </div>
             </div>
           </div>
         </div>
         <div class="btn-row">
-          <button class="primary" id="saveBtn">${editingRecord ? 'Update Record' : 'Data Enter'}</button>
+          <button class="primary" id="saveBtn"><span class="btn-spinner"></span><span class="btn-label">${editingRecord ? 'Update Record' : 'Data Enter'}</span></button>
           <button class="secondary" id="goEnquiriesBtn">Enquiries</button>
           ${editingRecord ? '<button class="ghost" id="cancelEditBtn">Cancel Edit</button>' : ''}
         </div>
       </div>
     `;
 
-    let photoData = editingRecord && editingRecord.photo ? editingRecord.photo : '';
+    let photoData = hasPhoto ? editingRecord.photo : '';
     const photoInput = document.getElementById('photoInput');
     const photoPreview = document.getElementById('photoPreview');
-    photoInput.addEventListener('change', () => {
+    const removePhotoBtn = document.getElementById('removePhotoBtn');
+
+    photoInput.addEventListener('change', async () => {
       const file = photoInput.files[0];
       if(!file) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        photoData = reader.result;
+      try{
+        photoData = await compressImage(file);
         photoPreview.src = photoData;
         photoPreview.classList.remove('show');
         void photoPreview.offsetWidth;
         photoPreview.classList.add('show');
-      };
-      reader.readAsDataURL(file);
+        removePhotoBtn.classList.add('show');
+      }catch(e){
+        showToast('Could not process that image');
+      }
     });
 
-    document.getElementById('goEnquiriesBtn').addEventListener('click', () => setView('enquiries'));
+    removePhotoBtn.addEventListener('click', () => {
+      photoData = '';
+      photoInput.value = '';
+      photoPreview.src = '';
+      photoPreview.classList.remove('show');
+      removePhotoBtn.classList.remove('show');
+      showToast('Photo removed');
+    });
+
+    document.getElementById('goEnquiriesBtn').addEventListener('click', async () => {
+      await loadRecords();
+      setView('enquiries');
+    });
 
     const cancelBtn = document.getElementById('cancelEditBtn');
     if(cancelBtn){
@@ -706,6 +987,9 @@
     }
 
     document.getElementById('saveBtn').addEventListener('click', async () => {
+      const saveBtn = document.getElementById('saveBtn');
+      if(saveBtn.classList.contains('loading')) return;
+
       const data = {};
       FIELDS.forEach(f => {
         const el = document.getElementById('f_' + f.key);
@@ -718,44 +1002,110 @@
       }
       data.photo = photoData;
 
+      saveBtn.classList.add('loading');
+      saveBtn.disabled = true;
+
       if(editingId){
-        const idx = records.findIndex(r => r.id === editingId);
-        if(idx > -1){
-          records[idx] = { ...records[idx], ...data };
+        try {
+          await updateDoc(doc(db, "responses", editingId), data);
+          const idx = records.findIndex(r => r.id === editingId);
+          if(idx > -1){
+            records[idx] = { ...records[idx], ...data };
+          }
+          showToast('Record updated in cloud');
+          const savedId = editingId;
+          editingId = null;
+          selectedId = savedId;
+          setView('details');
+        } catch (err) {
+          showToast("Failed to update data in cloud.");
+        } finally {
+          saveBtn.classList.remove('loading');
+          saveBtn.disabled = false;
         }
-        await persist();
-        showToast('Record updated');
-        const savedId = editingId;
-        editingId = null;
-        selectedId = savedId;
-        setView('details');
       } else {
-        const newRecord = { id: 'rec_' + Date.now() + '_' + Math.random().toString(36).slice(2,7), ...data, createdAt: new Date().toISOString() };
-        records.push(newRecord);
-        await persist();
-        showToast('Record saved');
-        setView('entry');
+        try {
+          data.createdAt = new Date().toISOString();
+          const docRef = await addDoc(collection(db, "responses"), data);
+          records.push({ id: docRef.id, ...data });
+          showToast('Record permanently saved to Firebase cloud');
+          setView('entry');
+        } catch (err) {
+          showToast("Failed to save data to cloud.");
+        } finally {
+          saveBtn.classList.remove('loading');
+          saveBtn.disabled = false;
+        }
       }
     });
   }
 
   function renderEnquiries(){
-    const filtered = records
-      .filter(r => (r.name || '').toLowerCase().includes(searchTerm.toLowerCase()))
-      .slice()
-      .reverse();
-
     app.innerHTML = `
       <div class="card">
         <h1>🔎 Enquiries</h1>
-        <p class="lead">All saved survey records. Click a name to view full details.</p>
-        <div class="search-bar">
-          <span class="search-icon">&#128269;</span>
-          <input type="text" id="searchInput" placeholder="Search by name..." value="${escapeHtml(searchTerm)}">
+        <p class="lead">All saved survey records. Search by name, phone, aadhar, address, bank, or any other detail from Data Entry — click a name to view full details.</p>
+        <div class="enquiry-toolbar">
+          <div class="search-bar">
+            <span class="search-icon">&#128269;</span>
+            <input type="text" id="searchInput" placeholder="Search by name, phone, aadhar, address..." value="${escapeHtml(searchTerm)}">
+          </div>
+          <div class="sort-wrap">
+            <span class="sort-icon">⇅</span>
+            <select id="sortSelect">
+              <option value="newest" ${sortMode === 'newest' ? 'selected' : ''}>Newest first</option>
+              <option value="oldest" ${sortMode === 'oldest' ? 'selected' : ''}>Oldest first</option>
+              <option value="name-asc" ${sortMode === 'name-asc' ? 'selected' : ''}>Name A → Z</option>
+              <option value="name-desc" ${sortMode === 'name-desc' ? 'selected' : ''}>Name Z → A</option>
+            </select>
+          </div>
+          <button class="ghost" id="refreshBtn" title="Refresh from cloud"><span class="btn-spinner"></span><span class="btn-label">↻ Refresh</span></button>
         </div>
+        <div id="resultCountHolder"></div>
         <div id="tableHolder"></div>
       </div>
     `;
+
+    // Only these two update on every keystroke / sort change — the search input and
+    // sort dropdown above are built once and never replaced, so focus and cursor
+    // position are never disturbed while typing.
+    updateEnquiryResults();
+
+    const searchInput = document.getElementById('searchInput');
+    searchInput.addEventListener('input', () => {
+      searchTerm = searchInput.value;
+      updateEnquiryResults();
+    });
+
+    const sortSelect = document.getElementById('sortSelect');
+    sortSelect.addEventListener('change', () => {
+      sortMode = sortSelect.value;
+      updateEnquiryResults();
+    });
+
+    document.getElementById('refreshBtn').addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      if(btn.classList.contains('loading')) return;
+      btn.classList.add('loading');
+      btn.disabled = true;
+      await loadRecords(true);
+      btn.classList.remove('loading');
+      btn.disabled = false;
+      updateEnquiryResults();
+      showToast('Records refreshed from cloud');
+    });
+  }
+
+  function updateEnquiryResults(){
+    const filtered = sortRecordList(
+      records.filter(r => recordMatchesTerm(r, searchTerm)),
+      sortMode
+    );
+
+    const countHolder = document.getElementById('resultCountHolder');
+    countHolder.innerHTML = searchTerm
+      ? `<div class="result-count">${filtered.length} result${filtered.length === 1 ? '' : 's'} found for "${escapeHtml(searchTerm)}"</div>`
+      : '';
 
     const holder = document.getElementById('tableHolder');
     if(filtered.length === 0){
@@ -764,34 +1114,38 @@
           <div class="big">&#9925;</div>
           <div>${records.length === 0 ? 'No records yet. Add one from Data Entry.' : 'No records match your search.'}</div>
         </div>`;
-    } else {
-      holder.innerHTML = `
-        <table>
-          <thead><tr><th class="sno-col">S.No.</th><th>Name</th></tr></thead>
-          <tbody>
-            ${filtered.map((r, i) => `
-              <tr style="animation-delay:${i * 0.035}s">
-                <td class="sno-col">${i + 1}</td>
-                <td><a class="name-link" data-id="${r.id}">${escapeHtml(r.name || '(no name)')}</a></td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      `;
-      holder.querySelectorAll('.name-link').forEach(a => {
-        a.addEventListener('click', () => {
-          selectedId = a.getAttribute('data-id');
-          setView('details');
-        });
-      });
+      return;
     }
 
-    const searchInput = document.getElementById('searchInput');
-    searchInput.addEventListener('input', () => {
-      searchTerm = searchInput.value;
-      renderEnquiries();
-      searchInput.focus();
-      searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+    holder.innerHTML = `
+      <table>
+        <thead><tr><th class="sno-col">S.No.</th><th>Name</th></tr></thead>
+        <tbody>
+          ${filtered.map((r, i) => {
+            const matched = firstMatchedField(r, searchTerm);
+            const tag = matched
+              ? `<span class="match-tag"><span class="match-icon">✓</span>${escapeHtml(matched.label)}: ${escapeHtml((r[matched.key] || '').toString().slice(0, 28))}${(r[matched.key] || '').toString().length > 28 ? '…' : ''}</span>`
+              : '';
+            return `
+            <tr style="animation-delay:${i * 0.035}s">
+              <td class="sno-col">${i + 1}</td>
+              <td>
+                <div class="name-cell">
+                  <a class="name-link" data-id="${r.id}">${escapeHtml(r.name || '(no name)')}</a>
+                  ${tag}
+                </div>
+              </td>
+            </tr>
+          `;
+          }).join('')}
+        </tbody>
+      </table>
+    `;
+    holder.querySelectorAll('.name-link').forEach(a => {
+      a.addEventListener('click', () => {
+        selectedId = a.getAttribute('data-id');
+        setView('details');
+      });
     });
   }
 
@@ -854,52 +1208,6 @@
     await loadRecords();
     render();
   })();
-
-})();
-</script>
-<script type="module">
-  // 1. Core Firebase tools
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-  // 2. Your project credentials from your screen
-  const firebaseConfig = {
-    apiKey: "AIzaSyCHmdn_SxpCWrwlHEb_H4bdp2_vsL0ei2c",
-    authDomain: "survey-record.firebaseapp.com",
-    projectId: "survey-record",
-    storageBucket: "survey-record.firebasestorage.app",
-    messagingSenderId: "676572314336",
-    appId: "1:676572314336:web:72adc0dc2eec53c60fae85",
-    measurementId: "G-VXY70DY4V1"
-  };
-
-  // 3. Wakes up the database context
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-
-  // 4. Catches the form submit event
-  const surveyForm = document.getElementById('surveyForm'); 
-
-  surveyForm.addEventListener('submit', async (e) => {
-    e.preventDefault(); // This is the magic line that stops the page from refreshing!
-
-    // Gather values using your HTML elements' IDs
-    const formData = {
-      name: document.getElementById('nameInput').value,
-      email: document.getElementById('emailInput').value,
-      timestamp: new Date()
-    };
-
-    try {
-      // Pushes the data permanently to your Firestore database
-      await addDoc(collection(db, "responses"), formData);
-      alert("Success! Data permanently saved to the cloud.");
-      surveyForm.reset(); // Clears out your form boxes for the next entry
-    } catch (error) {
-      console.error("Database connection failed: ", error);
-      alert("Error saving data. Check your Firestore rules tab.");
-    }
-  });
 </script>
 </body>
 </html>
