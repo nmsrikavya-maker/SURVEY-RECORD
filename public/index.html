@@ -213,7 +213,7 @@
     letter-spacing:0.2px;
   }
 
-  input[type=text], input[type=tel], input[type=number], textarea, select{
+  input[type=text], input[type=tel], input[type=number], input[type=email], input[type=password], textarea, select{
     border:1.5px solid var(--line);
     background:var(--paper-soft);
     border-radius:999px;
@@ -643,6 +643,37 @@
     .nav button{padding:8px 12px; font-size:12.5px;}
     .brand-title{font-size:17px;}
   }
+
+  /* Authentication Portal Custom CSS Layout styles */
+  .auth-container {
+    max-width: 420px;
+    margin: 40px auto;
+    padding: 10px;
+  }
+  .auth-toggle-hint {
+    text-align: center;
+    margin-top: 18px;
+    font-size: 13px;
+    color: var(--blue-deep);
+    font-weight: 600;
+  }
+  .auth-toggle-hint span {
+    color: var(--accent-2);
+    text-decoration: underline;
+    cursor: pointer;
+  }
+  .auth-stack-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 24px;
+  }
+  .google-auth-btn {
+    background: #ffffff !important;
+    color: var(--ink) !important;
+    border: 1.5px solid var(--line) !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+  }
 </style>
 </head>
 <body>
@@ -664,21 +695,49 @@
 </div>
 
 <div class="wrap">
-  <div class="brand">
-    <div class="brand-left">
-      <div class="brand-mark">☁️</div>
-      <div>
-        <div class="brand-title">Survey Data Entry</div>
-        <div class="brand-sub">Beneficiary records &amp; enquiries</div>
+  <div id="mainApplicationContent" style="display: none;">
+    <div class="brand">
+      <div class="brand-left">
+        <div class="brand-mark">☁️</div>
+        <div>
+          <div class="brand-title">Survey Data Entry</div>
+          <div class="brand-sub">Beneficiary records &amp; enquiries</div>
+        </div>
+      </div>
+      <div class="nav">
+        <button id="navEntry" class="active">Data Entry</button>
+        <button id="navEnquiries">Enquiries</button>
+        <button id="navLogout" style="color: var(--danger);">Logout</button>
       </div>
     </div>
-    <div class="nav">
-      <button id="navEntry" class="active">Data Entry</button>
-      <button id="navEnquiries">Enquiries</button>
-    </div>
+    <div id="app"></div>
   </div>
 
-  <div id="app"></div>
+  <div id="authenticationScreenGateway" class="auth-container" style="display: none;">
+    <div class="card">
+      <h1 id="authTitle">🔒 Secure Registration</h1>
+      <p class="lead" id="authSubtitle">Create a security account to access system database records.</p>
+      
+      <div class="grid">
+        <div class="field full">
+          <label for="authEmailInput">Email Address</label>
+          <input type="email" id="authEmailInput" placeholder="name@example.com">
+        </div>
+        <div class="field full">
+          <label for="authPasswordInput">Password</label>
+          <input type="password" id="authPasswordInput" placeholder="••••••••">
+        </div>
+      </div>
+
+      <div class="auth-stack-layout">
+        <button class="primary" id="btnSubmitCredential">Register Account</button>
+        <div style="text-align: center; color: var(--muted); font-size: 12px; font-weight: bold; margin: 4px 0;">OR</div>
+        <button class="primary google-auth-btn" id="btnGoogleAuth">Continue with Google</button>
+      </div>
+
+      <p class="auth-toggle-hint" id="authToggleMessage">Already have an account? <span id="authToggleAction">Sign In</span></p>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -696,6 +755,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCHmdn_SxpCWrwlHEb_H4bdp2_vsL0ei2c",
@@ -709,6 +769,8 @@
 
   const firebaseApp = initializeApp(firebaseConfig);
   const db = getFirestore(firebaseApp);
+  const auth = getAuth(firebaseApp);
+  const googleProvider = new GoogleAuthProvider();
 
   const FIELDS = [
     {key:'name', label:'Name', type:'text', full:false},
@@ -735,12 +797,16 @@
   const toastEl = document.getElementById('toast');
   const navEntry = document.getElementById('navEntry');
   const navEnquiries = document.getElementById('navEnquiries');
+  const navLogout = document.getElementById('navLogout');
   const confirmOverlay = document.getElementById('confirmOverlay');
   const confirmText = document.getElementById('confirmText');
   const confirmCancel = document.getElementById('confirmCancel');
   const confirmOk = document.getElementById('confirmOk');
   const skyDeco = document.querySelector('.sky-deco');
   const welcomeOverlay = document.getElementById('welcomeOverlay');
+
+  const mainApplicationContent = document.getElementById('mainApplicationContent');
+  const authenticationScreenGateway = document.getElementById('authenticationScreenGateway');
 
   function dismissWelcome(){
     if(!welcomeOverlay || welcomeOverlay.classList.contains('hide')) return;
@@ -852,9 +918,6 @@
     }[s]));
   }
 
-  // Searches every field entered on the Data Entry page (page 1), not just the name,
-  // so a record saved there can be found from the Enquiries search bar (page 2)
-  // even though its full details only display on the detail page (page 3).
   function recordMatchesTerm(r, term){
     if(!term) return true;
     const t = term.toLowerCase();
@@ -881,10 +944,6 @@
     return arr;
   }
 
-  // Shrinks uploaded photos client-side before they're stored. Full-resolution phone
-  // photos as base64 are the main reason saves/updates and the Enquiries load felt slow —
-  // resizing to a sane max dimension and re-encoding as compressed JPEG cuts that payload
-  // down drastically (often 10x+) without a visible quality loss for a thumbnail/detail view.
   function compressImage(file, maxDim = 900, quality = 0.72){
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -1066,9 +1125,6 @@
       </div>
     `;
 
-    // Only these two update on every keystroke / sort change — the search input and
-    // sort dropdown above are built once and never replaced, so focus and cursor
-    // position are never disturbed while typing.
     updateEnquiryResults();
 
     const searchInput = document.getElementById('searchInput');
@@ -1204,9 +1260,100 @@
     else if(view === 'details') renderDetails();
   }
 
+  // ==========================================
+  // IDENTITY ENTRY ARCHITECTURE & WORKFLOW
+  // ==========================================
+  let authMode = 'register'; // Context states: 'register' or 'login'
+  const emailInput = document.getElementById('authEmailInput');
+  const passwordInput = document.getElementById('authPasswordInput');
+  const btnSubmitCredential = document.getElementById('btnSubmitCredential');
+  const btnGoogleAuth = document.getElementById('btnGoogleAuth');
+  const authToggleAction = document.getElementById('authToggleAction');
+  
+  const authTitle = document.getElementById('authTitle');
+  const authSubtitle = document.getElementById('authSubtitle');
+  const authToggleMessage = document.getElementById('authToggleMessage');
+
+  // Toggle Between Register and Login views
+  authToggleAction.addEventListener('click', () => {
+    if (authMode === 'register') {
+      authMode = 'login';
+      authTitle.textContent = '🔒 Secure Sign In';
+      authSubtitle.textContent = 'Please check credentials to verify database permission paths.';
+      btnSubmitCredential.textContent = 'Sign In';
+      authToggleMessage.innerHTML = `New to the platform? <span id="authToggleAction">Register Account</span>`;
+    } else {
+      authMode = 'register';
+      authTitle.textContent = '🔒 Secure Registration';
+      authSubtitle.textContent = 'Create a security account to access system database records.';
+      btnSubmitCredential.textContent = 'Register Account';
+      authToggleMessage.innerHTML = `Already have an account? <span id="authToggleAction">Sign In</span>`;
+    }
+    // Re-bind click event to the newly generated innerHTML dynamic target span
+    document.getElementById('authToggleAction').addEventListener('click', arguments.callee);
+  });
+
+  // Handle Form Registration / Log In Processing
+  btnSubmitCredential.addEventListener('click', async () => {
+    const email = emailInput.value.trim();
+    const password = passwordInput.value.trim();
+
+    if(!email || !password) {
+      showToast("Fields missing validation updates.");
+      return;
+    }
+
+    try {
+      if (authMode === 'register') {
+        await createUserWithEmailAndPassword(auth, email, password);
+        showToast("Registration Complete!");
+      } else {
+        await signInWithEmailAndPassword(auth, email, password);
+        showToast("Access Verified!");
+      }
+    } catch (error) {
+      console.error(error);
+      showToast(error.message.replace("Firebase: ", ""));
+    }
+  });
+
+  // Handle Google OAuth Pop-ups
+  btnGoogleAuth.addEventListener('click', async () => {
+    try {
+      await signInWithPopup(auth, googleProvider);
+      showToast("Access Authenticated via Google.");
+    } catch (error) {
+      console.error(error);
+      showToast(error.message.replace("Firebase: ", ""));
+    }
+  });
+
+  // Handle App Terminate Session Actions
+  navLogout.addEventListener('click', async () => {
+    try {
+      await signOut(auth);
+      records = [];
+      recordsLoaded = false;
+      showToast("Session Terminated Safely.");
+    } catch (error) {
+      showToast("Error processing system log out.");
+    }
+  });
+
+  // Core Orchestration Initializer
   (async function init(){
-    await loadRecords();
-    render();
+    // Observe state modifications across system context levels
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        authenticationScreenGateway.style.display = 'none';
+        mainApplicationContent.style.display = 'block';
+        await loadRecords();
+        setView('entry');
+      } else {
+        mainApplicationContent.style.display = 'none';
+        authenticationScreenGateway.style.display = 'block';
+      }
+    });
   })();
 </script>
 </body>
