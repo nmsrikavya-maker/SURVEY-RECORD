@@ -179,7 +179,7 @@
   }
   @keyframes rise{
     from{opacity:0; transform:translateY(16px) scale(.99);}
-    to{opacity:1; transform:translateY(0 scale(1));}
+    to{opacity:1; transform:translateY(0) scale(1);}
   }
 
   .card h1{
@@ -815,7 +815,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, linkWithCredential } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCHmdn_SxpCWrwlHEb_H4bdp2_vsL0ei2c",
@@ -836,7 +836,7 @@
     {key:'name', label:'Name', type:'text', full:false},
     {key:'soWo', label:'S/O (or) W/O', type:'text', full:false},
     {key:'phone', label:'Phone Number', type:'tel', full:false},
-    {key:'aadhar', label:'[Aadhaar Redacted]', type:'text', full:false},
+    {key:'aadhar', label:'Aadhar Number', type:'text', full:false},
     {key:'ration', label:'Ration Number', type:'text', full:false},
     {key:'age', label:'Age', type:'number', full:false},
     {key:'caste', label:'Caste', type:'text', full:false},
@@ -1398,50 +1398,17 @@
       }
     } catch (error) {
       console.error(error);
-      let userFriendlyMessage = error.message;
-      if (error.code === 'auth/email-already-in-use') {
-        userFriendlyMessage = "This email is already registered. Please Sign In instead.";
-      } else if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
-        userFriendlyMessage = "Invalid email or password. Please verify credentials.";
-      } else if (error.code === 'auth/weak-password') {
-        userFriendlyMessage = "Password should be at least 6 characters long.";
-      }
-      showToast(userFriendlyMessage.replace("Firebase: ", ""));
+      showToast(error.message.replace("Firebase: ", ""));
     }
   });
 
-  // FOOLPROOF GOOGLE ACCOUNT LINKING FLOW
   btnGoogleAuth.addEventListener('click', async () => {
-    const email = emailInput.value.trim();
-    const password = passwordInput.value.trim();
-
     try {
-      // Try normal sign-in first
       await signInWithPopup(auth, googleProvider);
       showToast("Access Authenticated via Google.");
     } catch (error) {
       console.error(error);
-      // Catch duplicate method exception cleanly
-      if (error.code === 'auth/account-exists-with-different-credential') {
-        if (!password) {
-          showToast("Please type your password above first, then click Google to link them!");
-          return;
-        }
-        showToast("Linking Google account to password profile...");
-        try {
-          const pendingCred = GoogleAuthProvider.credentialFromError(error);
-          // 1. Sign in with password to obtain verification context
-          const userCred = await signInWithEmailAndPassword(auth, email, password);
-          // 2. Link the Google identity to the active session profile
-          await linkWithCredential(userCred.user, pendingCred);
-          showToast("Accounts linked! Both options will now work.");
-        } catch (linkError) {
-          console.error(linkError);
-          showToast("Link execution error: Verification failed.");
-        }
-      } else {
-        showToast(error.message.replace("Firebase: ", ""));
-      }
+      showToast(error.message.replace("Firebase: ", ""));
     }
   });
 
