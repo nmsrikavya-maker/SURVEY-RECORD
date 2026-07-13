@@ -20,6 +20,8 @@
     --accent:#ffc95c;
     --accent-2:#ff9fb0;
     --danger:#e15b6b;
+    --success:#4caf50;
+    --warning:#ff9800;
     --radius:14px;
     --shadow:0 10px 30px rgba(25,90,130,0.20);
     font-family: 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
@@ -230,12 +232,12 @@
     resize:vertical;
     min-height:64px;
   }
-  input:focus, textarea:focus{
+  input:focus, textarea:focus, select:focus{
     border-color: var(--blue-mid);
     box-shadow: 0 0 0 4px rgba(95,179,224,0.22);
     background:#fff;
   }
-  input:hover, textarea:hover{ border-color: var(--baby-blue); }
+  input:hover, textarea:hover, select:hover{ border-color: var(--baby-blue); }
 
   .photo-box{
     border:1.5px dashed var(--baby-blue);
@@ -438,6 +440,32 @@
     animation: fieldIn .3s ease both;
   }
 
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .status-badge.pending {
+    background: #fff3e0;
+    color: var(--warning);
+    border: 1px solid #ffe0b2;
+  }
+  .status-badge.approved {
+    background: #e8f5e9;
+    color: var(--success);
+    border: 1px solid #c8e6c9;
+  }
+  .status-badge.rejected {
+    background: #ffebee;
+    color: var(--danger);
+    border: 1px solid #ffcdd2;
+  }
+
   table{
     width:100%;
     border-collapse:collapse;
@@ -470,6 +498,7 @@
     to{ opacity:1; transform:translateX(0); }
   }
   .sno-col{width:70px; color:var(--muted); font-weight:600;}
+  .status-col{width:140px;}
   a.name-link{
     color:var(--blue-deep);
     font-weight:700;
@@ -642,6 +671,7 @@
     .detail-item{border-right:none;}
     .nav button{padding:8px 12px; font-size:12.5px;}
     .brand-title{font-size:17px;}
+    .status-col{width:auto;}
   }
 
   .auth-container {
@@ -780,6 +810,7 @@
     {key:'age', label:'Age', type:'number', full:false},
     {key:'caste', label:'Caste', type:'text', full:false},
     {key:'occupation', label:'Occupation', type:'text', full:false},
+    {key:'status', label:'Status', type:'select', full:false, options: ['Pending', 'Approved', 'Rejected']},
     {key:'address', label:'Present Address', type:'textarea', full:true},
     {key:'bank', label:'Bank', type:'text', full:false},
     {key:'accountNo', label:'Account Number', type:'text', full:false},
@@ -848,7 +879,6 @@
     setTimeout(()=> toastEl.classList.remove('show'), 2200);
   }
 
-  // UPDATED: Now queries ONLY documents created by the current user's UID
   async function loadRecords(force){
     if(recordsLoaded && !force) return;
     if(!auth.currentUser) return;
@@ -909,6 +939,14 @@
       return `<div class="field ${f.full ? 'full' : ''}" ${style}>
         <label for="${id}">${f.label}</label>
         <textarea id="${id}" data-key="${f.key}">${escapeHtml(value||'')}</textarea>
+      </div>`;
+    }
+    if(f.type === 'select'){
+      return `<div class="field ${f.full ? 'full' : ''}" ${style}>
+        <label for="${id}">${f.label}</label>
+        <select id="${id}" data-key="${f.key}">
+          ${f.options.map(opt => `<option value="${opt}" ${value === opt ? 'selected' : ''}>${opt}</option>`).join('')}
+        </select>
       </div>`;
     }
     return `<div class="field ${f.full ? 'full' : ''}" ${style}>
@@ -991,7 +1029,7 @@
         <h1>${editingRecord ? '✏️' : '📝'} ${heading}</h1>
         <p class="lead">${sub}</p>
         <div class="grid" id="formGrid">
-          ${FIELDS.map((f, i) => fieldRow(f, editingRecord ? editingRecord[f.key] : '', i)).join('')}
+          ${FIELDS.map((f, i) => fieldRow(f, editingRecord ? editingRecord[f.key] : (f.key === 'status' ? 'Pending' : ''), i)).join('')}
           <div class="field full">
             <label>Photo Upload</label>
             <div class="photo-box">
@@ -1065,8 +1103,6 @@
         return;
       }
       data.photo = photoData;
-      
-      // UPDATED: Bind record explicitly to active user context
       data.createdBy = auth.currentUser.uid;
 
       saveBtn.classList.add('loading');
@@ -1183,13 +1219,14 @@
 
     holder.innerHTML = `
       <table>
-        <thead><tr><th class="sno-col">S.No.</th><th>Name</th></tr></thead>
+        <thead><tr><th class="sno-col">S.No.</th><th>Name</th><th class="status-col">Status</th></tr></thead>
         <tbody>
           ${filtered.map((r, i) => {
             const matched = firstMatchedField(r, searchTerm);
             const tag = matched
               ? `<span class="match-tag"><span class="match-icon">✓</span>${escapeHtml(matched.label)}: ${escapeHtml((r[matched.key] || '').toString().slice(0, 28))}${(r[matched.key] || '').toString().length > 28 ? '…' : ''}</span>`
               : '';
+            const statusVal = r.status || 'Pending';
             return `
             <tr style="animation-delay:${i * 0.035}s">
               <td class="sno-col">${i + 1}</td>
@@ -1198,6 +1235,9 @@
                   <a class="name-link" data-id="${r.id}">${escapeHtml(r.name || '(no name)')}</a>
                   ${tag}
                 </div>
+              </td>
+              <td class="status-col">
+                <span class="status-badge ${statusVal.toLowerCase()}">${escapeHtml(statusVal)}</span>
               </td>
             </tr>
           `;
@@ -1243,7 +1283,12 @@
           ${FIELDS.map((f, i) => `
             <div class="detail-item ${f.full ? 'full' : ''}" style="animation-delay:${i * 0.025}s">
               <div class="detail-label">${f.label}</div>
-              <div class="detail-value ${record[f.key] ? '' : 'empty'}">${record[f.key] ? escapeHtml(record[f.key]) : 'Not provided'}</div>
+              <div class="detail-value ${record[f.key] ? '' : 'empty'}">
+                ${f.key === 'status' 
+                  ? `<span class="status-badge ${(record[f.key] || 'Pending').toLowerCase()}">${escapeHtml(record[f.key] || 'Pending')}</span>`
+                  : (record[f.key] ? escapeHtml(record[f.key]) : 'Not provided')
+                }
+              </div>
             </div>
           `).join('')}
         </div>
@@ -1345,7 +1390,6 @@
       if (user) {
         authenticationScreenGateway.style.display = 'none';
         mainApplicationContent.style.display = 'block';
-        // Reset loader configurations on user alteration checks
         recordsLoaded = false; 
         await loadRecords();
         setView('entry');
