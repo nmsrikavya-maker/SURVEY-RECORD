@@ -704,7 +704,6 @@
     box-shadow: 0 4px 12px rgba(0,0,0,0.03);
   }
 
-  /* Secure input layout wrapper styling for password custom button positioning */
   .password-input-wrapper {
     position: relative;
     display: flex;
@@ -1179,7 +1178,7 @@
     app.innerHTML = `
       <div class="card">
         <h1>🔎 Enquiries</h1>
-        <p class="lead">Your saved survey records. Search by name, phone, aadhar, address, bank — click a name to view full details.</p>
+        <p class="lead">Your saved survey records. Search by fields — click a name to view full details.</p>
         <div class="enquiry-toolbar">
           <div class="search-bar">
             <span class="search-icon">&#128269;</span>
@@ -1356,14 +1355,12 @@
   const authSubtitle = document.getElementById('authSubtitle');
   const authToggleMessage = document.getElementById('authToggleMessage');
 
-  // Password Visibility Toggle Button logic
   btnTogglePasswordVisibility.addEventListener('click', () => {
     const isPassword = passwordInput.getAttribute('type') === 'password';
     passwordInput.setAttribute('type', isPassword ? 'text' : 'password');
     btnTogglePasswordVisibility.textContent = isPassword ? 'Hide' : 'Show';
   });
 
-  // Dynamic View Switcher Setup safely using named delegation strategy
   function handleAuthFormToggle() {
     if (authMode === 'register') {
       authMode = 'login';
