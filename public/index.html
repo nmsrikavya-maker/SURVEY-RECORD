@@ -179,7 +179,7 @@
   }
   @keyframes rise{
     from{opacity:0; transform:translateY(16px) scale(.99);}
-    to{opacity:1; transform:translateY(0) scale(1);}
+    to{opacity:1; transform:translateY(0 scale(1));}
   }
 
   .card h1{
@@ -679,57 +679,23 @@
     margin: 40px auto;
     padding: 10px;
   }
-  .auth-toggle-hint {
-    text-align: center;
-    margin-top: 18px;
-    font-size: 13px;
-    color: var(--blue-deep);
-    font-weight: 600;
-  }
-  .auth-toggle-hint span {
-    color: var(--accent-2);
-    text-decoration: underline;
-    cursor: pointer;
-  }
   .auth-stack-layout {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    margin-top: 24px;
+    margin-top: 14px;
   }
   .google-auth-btn {
     background: #ffffff !important;
     color: var(--ink) !important;
     border: 1.5px solid var(--line) !important;
     box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-  }
-
-  .password-input-wrapper {
-    position: relative;
+    padding: 14px 26px !important;
+    font-size: 15px !important;
     display: flex;
     align-items: center;
-    width: 100%;
-  }
-  .password-input-wrapper input {
-    padding-right: 70px !important;
-  }
-  .password-toggle-visible-btn {
-    position: absolute;
-    right: 12px;
-    background: rgba(19, 65, 102, 0.08);
-    border: none;
-    color: var(--navy);
-    font-size: 11px;
-    font-weight: 700;
-    padding: 5px 10px;
-    border-radius: 999px;
-    cursor: pointer;
-    text-transform: uppercase;
-    user-select: none;
-    transition: background 0.2s ease;
-  }
-  .password-toggle-visible-btn:hover {
-    background: rgba(19, 65, 102, 0.15);
+    justify-content: center;
+    gap: 10px;
   }
 </style>
 </head>
@@ -771,31 +737,21 @@
   </div>
 
   <div id="authenticationScreenGateway" class="auth-container" style="display: none;">
-    <div class="card">
-      <h1 id="authTitle">🔒 Secure Registration</h1>
-      <p class="lead" id="authSubtitle">Create a security account to access system database records.</p>
+    <div class="card" style="text-align: center;">
+      <h1>🔒 Secure Access Portal</h1>
+      <p class="lead">Sign in with your organizational credentials to unlock database records.</p>
       
-      <div class="grid">
-        <div class="field full">
-          <label for="authEmailInput">Email Address</label>
-          <input type="email" id="authEmailInput" placeholder="name@example.com">
-        </div>
-        <div class="field full">
-          <label for="authPasswordInput">Password</label>
-          <div class="password-input-wrapper">
-            <input type="password" id="authPasswordInput" placeholder="••••••••">
-            <button type="button" class="password-toggle-visible-btn" id="btnTogglePasswordVisibility">Show</button>
-          </div>
-        </div>
-      </div>
-
       <div class="auth-stack-layout">
-        <button class="primary" id="btnSubmitCredential">Register Account</button>
-        <div style="text-align: center; color: var(--muted); font-size: 12px; font-weight: bold; margin: 4px 0;">OR</div>
-        <button class="primary google-auth-btn" id="btnGoogleAuth">Continue with Google</button>
+        <button class="primary google-auth-btn" id="btnGoogleAuth">
+          <svg width="18" height="18" viewBox="0 0 18 18" style="display:inline-block; vertical-align:middle;">
+            <path fill="#4285F4" d="M17.64 9.2c0-.63-.06-1.25-.16-1.84H9v3.47h4.84c-.21 1.12-.84 2.07-1.8 2.71v2.24h2.91c1.7-1.56 2.69-3.86 2.69-6.58z"/>
+            <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.91-2.24c-.8.54-1.84.87-3.05.87-2.34 0-4.33-1.57-5.03-3.68H.95v2.3A9 9 0 0 0 9 18z"/>
+            <path fill="#FBBC05" d="M3.97 10.77c-.18-.54-.28-1.11-.28-1.77s.1-1.23.28-1.77V4.93H.95A8.99 8.99 0 0 0 0 9c0 1.45.35 2.82.95 4.07l3.02-2.3z"/>
+            <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35L15 2.3A8.99 8.99 0 0 0 9 0 9 9 0 0 0 .95 4.93l3.02 2.3c.7-2.11 2.69-3.68 5.03-3.68z"/>
+          </svg>
+          Continue with Google
+        </button>
       </div>
-
-      <p class="auth-toggle-hint" id="authToggleMessage">Already have an account? <span id="authToggleAction">Sign In</span></p>
     </div>
   </div>
 </div>
@@ -815,8 +771,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-  // UPDATED IMPORT: Added linkWithCredential right into the initialization mapping
-  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, linkWithCredential } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCHmdn_SxpCWrwlHEb_H4bdp2_vsL0ei2c",
@@ -837,7 +792,7 @@
     {key:'name', label:'Name', type:'text', full:false},
     {key:'soWo', label:'S/O (or) W/O', type:'text', full:false},
     {key:'phone', label:'Phone Number', type:'tel', full:false},
-    {key:'aadhar', label:'Aadhar Number', type:'text', full:false},
+    {key:'aadhar', label:'[Aadhaar Redacted]', type:'text', full:false},
     {key:'ration', label:'Ration Number', type:'text', full:false},
     {key:'age', label:'Age', type:'number', full:false},
     {key:'caste', label:'Caste', type:'text', full:false},
@@ -1345,94 +1300,17 @@
     else if(view === 'details') renderDetails();
   }
 
-  let authMode = 'register'; 
-  const emailInput = document.getElementById('authEmailInput');
-  const passwordInput = document.getElementById('authPasswordInput');
-  const btnSubmitCredential = document.getElementById('btnSubmitCredential');
   const btnGoogleAuth = document.getElementById('btnGoogleAuth');
-  const btnTogglePasswordVisibility = document.getElementById('btnTogglePasswordVisibility');
-  
-  const authTitle = document.getElementById('authTitle');
-  const authSubtitle = document.getElementById('authSubtitle');
-  const authToggleMessage = document.getElementById('authToggleMessage');
+  const mainApplicationContent = document.getElementById('mainApplicationContent');
+  const authenticationScreenGateway = document.getElementById('authenticationScreenGateway');
 
-  btnTogglePasswordVisibility.addEventListener('click', () => {
-    const isPassword = passwordInput.getAttribute('type') === 'password';
-    passwordInput.setAttribute('type', isPassword ? 'text' : 'password');
-    btnTogglePasswordVisibility.textContent = isPassword ? 'Hide' : 'Show';
-  });
-
-  function handleAuthFormToggle() {
-    if (authMode === 'register') {
-      authMode = 'login';
-      authTitle.textContent = '🔒 Secure Sign In';
-      authSubtitle.textContent = 'Please check credentials to verify database permission paths.';
-      btnSubmitCredential.textContent = 'Sign In';
-      authToggleMessage.innerHTML = `New to the platform? <span id="authToggleAction">Register Account</span>`;
-    } else {
-      authMode = 'register';
-      authTitle.textContent = '🔒 Secure Registration';
-      authSubtitle.textContent = 'Create a security account to access system database records.';
-      btnSubmitCredential.textContent = 'Register Account';
-      authToggleMessage.innerHTML = `Already have an account? <span id="authToggleAction">Sign In</span>`;
-    }
-    document.getElementById('authToggleAction').addEventListener('click', handleAuthFormToggle);
-  }
-  document.getElementById('authToggleAction').addEventListener('click', handleAuthFormToggle);
-
-  // UPDATED METHOD: Custom handling intercept to map cleaner user-friendly text outputs over exceptions
-  btnSubmitCredential.addEventListener('click', async () => {
-    const email = emailInput.value.trim();
-    const password = passwordInput.value.trim();
-
-    if(!email || !password) {
-      showToast("Fields missing validation updates.");
-      return;
-    }
-
-    try {
-      if (authMode === 'register') {
-        await createUserWithEmailAndPassword(auth, email, password);
-        showToast("Registration Complete!");
-      } else {
-        await signInWithEmailAndPassword(auth, email, password);
-        showToast("Access Verified!");
-      }
-    } catch (error) {
-      console.error(error);
-      let userFriendlyMessage = error.message;
-      if (error.code === 'auth/email-already-in-use') {
-        userFriendlyMessage = "This email is already registered. Please Sign In instead.";
-      } else if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
-        userFriendlyMessage = "Invalid email or password. Please verify credentials.";
-      } else if (error.code === 'auth/weak-password') {
-        userFriendlyMessage = "Password should be at least 6 characters long.";
-      }
-      showToast(userFriendlyMessage.replace("Firebase: ", ""));
-    }
-  });
-
-  // UPDATED METHOD: Upgraded standalone popup trigger to check and link multi-provider identities dynamically
   btnGoogleAuth.addEventListener('click', async () => {
     try {
       await signInWithPopup(auth, googleProvider);
       showToast("Access Authenticated via Google.");
     } catch (error) {
       console.error(error);
-      if (error.code === 'auth/account-exists-with-different-credential') {
-        showToast("Linking Google login profile with your manual password...");
-        try {
-          const pendingCred = GoogleAuthProvider.credentialFromError(error);
-          if (auth.currentUser) {
-            await linkWithCredential(auth.currentUser, pendingCred);
-            showToast("Accounts successfully linked together!");
-          }
-        } catch (linkError) {
-          showToast("Link execution trace error: " + linkError.message);
-        }
-      } else {
-        showToast(error.message.replace("Firebase: ", ""));
-      }
+      showToast(error.message.replace("Firebase: ", ""));
     }
   });
 
