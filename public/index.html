@@ -179,7 +179,7 @@
   }
   @keyframes rise{
     from{opacity:0; transform:translateY(16px) scale(.99);}
-    to{opacity:1; transform:translateY(0) scale(1);}
+    to{opacity:1; transform:translateY(0 scale(1));}
   }
 
   .card h1{
@@ -815,7 +815,6 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-  // UPDATED IMPORT: Added linkWithCredential right into the initialization mapping
   import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, linkWithCredential } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
   const firebaseConfig = {
@@ -837,7 +836,7 @@
     {key:'name', label:'Name', type:'text', full:false},
     {key:'soWo', label:'S/O (or) W/O', type:'text', full:false},
     {key:'phone', label:'Phone Number', type:'tel', full:false},
-    {key:'aadhar', label:'Aadhar Number', type:'text', full:false},
+    {key:'aadhar', label:'[Aadhaar Redacted]', type:'text', full:false},
     {key:'ration', label:'Ration Number', type:'text', full:false},
     {key:'age', label:'Age', type:'number', full:false},
     {key:'caste', label:'Caste', type:'text', full:false},
@@ -1380,7 +1379,6 @@
   }
   document.getElementById('authToggleAction').addEventListener('click', handleAuthFormToggle);
 
-  // UPDATED METHOD: Custom handling intercept to map cleaner user-friendly text outputs over exceptions
   btnSubmitCredential.addEventListener('click', async () => {
     const email = emailInput.value.trim();
     const password = passwordInput.value.trim();
@@ -1412,23 +1410,34 @@
     }
   });
 
-  // UPDATED METHOD: Upgraded standalone popup trigger to check and link multi-provider identities dynamically
+  // FOOLPROOF GOOGLE ACCOUNT LINKING FLOW
   btnGoogleAuth.addEventListener('click', async () => {
+    const email = emailInput.value.trim();
+    const password = passwordInput.value.trim();
+
     try {
+      // Try normal sign-in first
       await signInWithPopup(auth, googleProvider);
       showToast("Access Authenticated via Google.");
     } catch (error) {
       console.error(error);
+      // Catch duplicate method exception cleanly
       if (error.code === 'auth/account-exists-with-different-credential') {
-        showToast("Linking Google login profile with your manual password...");
+        if (!password) {
+          showToast("Please type your password above first, then click Google to link them!");
+          return;
+        }
+        showToast("Linking Google account to password profile...");
         try {
           const pendingCred = GoogleAuthProvider.credentialFromError(error);
-          if (auth.currentUser) {
-            await linkWithCredential(auth.currentUser, pendingCred);
-            showToast("Accounts successfully linked together!");
-          }
+          // 1. Sign in with password to obtain verification context
+          const userCred = await signInWithEmailAndPassword(auth, email, password);
+          // 2. Link the Google identity to the active session profile
+          await linkWithCredential(userCred.user, pendingCred);
+          showToast("Accounts linked! Both options will now work.");
         } catch (linkError) {
-          showToast("Link execution trace error: " + linkError.message);
+          console.error(linkError);
+          showToast("Link execution error: Verification failed.");
         }
       } else {
         showToast(error.message.replace("Firebase: ", ""));
