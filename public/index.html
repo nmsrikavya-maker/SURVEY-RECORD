@@ -336,7 +336,6 @@
   button:hover{transform:translateY(-2px); filter:brightness(1.03);}
   button.primary:hover{ box-shadow:0 12px 26px rgba(31,111,163,0.45); }
   button:active{transform:translateY(0) scale(.98);}
-  button:disabled{opacity:0.5; cursor:not-allowed; transform:none;}
   button.loading{ color:transparent !important; pointer-events:none; }
   button .btn-spinner{
     display:none;
@@ -676,60 +675,37 @@
 
   .auth-container {
     max-width: 420px;
-    margin: 40px auto;
+    margin: 80px auto;
     padding: 10px;
-  }
-  .auth-toggle-hint {
-    text-align: center;
-    margin-top: 18px;
-    font-size: 13px;
-    color: var(--blue-deep);
-    font-weight: 600;
-  }
-  .auth-toggle-hint span {
-    color: var(--accent-2);
-    text-decoration: underline;
-    cursor: pointer;
   }
   .auth-stack-layout {
     display: flex;
     flex-direction: column;
+    align-items: center;
     gap: 12px;
     margin-top: 24px;
   }
   .google-auth-btn {
-    background: #ffffff !important;
-    color: var(--ink) !important;
-    border: 1.5px solid var(--line) !important;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-  }
-
-  .password-input-wrapper {
-    position: relative;
     display: flex;
     align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: #ffffff !important;
+    color: var(--navy) !important;
+    border: 2px solid var(--blue-mid) !important;
+    box-shadow: 0 6px 18px rgba(31,111,163,0.15);
     width: 100%;
+    padding: 14px 26px;
+    font-size: 15px;
+    animation: gentleBob 3.5s ease-in-out infinite;
   }
-  .password-input-wrapper input {
-    padding-right: 70px !important;
+  .google-auth-btn:hover {
+    background: var(--sky-1) !important;
+    box-shadow: 0 8px 22px rgba(31,111,163,0.25) !important;
   }
-  .password-toggle-visible-btn {
-    position: absolute;
-    right: 12px;
-    background: rgba(19, 65, 102, 0.08);
-    border: none;
-    color: var(--navy);
-    font-size: 11px;
-    font-weight: 700;
-    padding: 5px 10px;
-    border-radius: 999px;
-    cursor: pointer;
-    text-transform: uppercase;
-    user-select: none;
-    transition: background 0.2s ease;
-  }
-  .password-toggle-visible-btn:hover {
-    background: rgba(19, 65, 102, 0.15);
+  .google-icon-svg {
+    width: 20px;
+    height: 20px;
   }
 </style>
 </head>
@@ -771,31 +747,21 @@
   </div>
 
   <div id="authenticationScreenGateway" class="auth-container" style="display: none;">
-    <div class="card">
-      <h1 id="authTitle">🔒 Secure Registration</h1>
-      <p class="lead" id="authSubtitle">Create a security account to access system database records.</p>
+    <div class="card" style="text-align: center;">
+      <h1>🔒 Secure Access</h1>
+      <p class="lead">Connect using your secure organizational credentials.</p>
       
-      <div class="grid">
-        <div class="field full">
-          <label for="authEmailInput">Email Address</label>
-          <input type="email" id="authEmailInput" placeholder="name@example.com">
-        </div>
-        <div class="field full">
-          <label for="authPasswordInput">Password</label>
-          <div class="password-input-wrapper">
-            <input type="password" id="authPasswordInput" placeholder="••••••••">
-            <button type="button" class="password-toggle-visible-btn" id="btnTogglePasswordVisibility">Show</button>
-          </div>
-        </div>
-      </div>
-
       <div class="auth-stack-layout">
-        <button class="primary" id="btnSubmitCredential">Register Account</button>
-        <div style="text-align: center; color: var(--muted); font-size: 12px; font-weight: bold; margin: 4px 0;">OR</div>
-        <button class="primary google-auth-btn" id="btnGoogleAuth">Continue with Google</button>
+        <button class="primary google-auth-btn" id="btnGoogleAuth">
+          <svg class="google-icon-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
+            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/>
+          </svg>
+          Continue with Google
+        </button>
       </div>
-
-      <p class="auth-toggle-hint" id="authToggleMessage">Already have an account? <span id="authToggleAction">Sign In</span></p>
     </div>
   </div>
 </div>
@@ -815,7 +781,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, linkWithCredential, EmailAuthProvider } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCHmdn_SxpCWrwlHEb_H4bdp2_vsL0ei2c",
@@ -887,7 +853,6 @@
   let searchTerm = '';
   let sortMode = 'newest';
   let pendingDeleteId = null;
-  let pendingGoogleCredential = null;
 
   function spawnBubbles(){
     const count = 9;
@@ -1345,103 +1310,19 @@
     else if(view === 'details') renderDetails();
   }
 
-  let authMode = 'register'; 
-  const emailInput = document.getElementById('authEmailInput');
-  const passwordInput = document.getElementById('authPasswordInput');
-  const btnSubmitCredential = document.getElementById('btnSubmitCredential');
   const btnGoogleAuth = document.getElementById('btnGoogleAuth');
-  const btnTogglePasswordVisibility = document.getElementById('btnTogglePasswordVisibility');
-  
-  const authTitle = document.getElementById('authTitle');
-  const authSubtitle = document.getElementById('authSubtitle');
-  const authToggleMessage = document.getElementById('authToggleMessage');
+  const authenticationScreenGateway = document.getElementById('authenticationScreenGateway');
 
-  btnTogglePasswordVisibility.addEventListener('click', () => {
-    const isPassword = passwordInput.getAttribute('type') === 'password';
-    passwordInput.setAttribute('type', isPassword ? 'text' : 'password');
-    btnTogglePasswordVisibility.textContent = isPassword ? 'Hide' : 'Show';
-  });
-
-  function handleAuthFormToggle() {
-    if (authMode === 'linking') {
-      pendingGoogleCredential = null;
-      authMode = 'login';
-    }
-    if (authMode === 'register') {
-      authMode = 'login';
-      authTitle.textContent = '🔒 Secure Sign In';
-      authSubtitle.textContent = 'Please check credentials to verify database permission paths.';
-      btnSubmitCredential.textContent = 'Sign In';
-      authToggleMessage.innerHTML = `New to the platform? <span id="authToggleAction">Register Account</span>`;
-    } else {
-      authMode = 'register';
-      authTitle.textContent = '🔒 Secure Registration';
-      authSubtitle.textContent = 'Create a security account to access system database records.';
-      btnSubmitCredential.textContent = 'Register Account';
-      authToggleMessage.innerHTML = `Already have an account? <span id="authToggleAction">Sign In</span>`;
-    }
-    document.getElementById('authToggleAction').addEventListener('click', handleAuthFormToggle);
-  }
-  document.getElementById('authToggleAction').addEventListener('click', handleAuthFormToggle);
-
-  btnSubmitCredential.addEventListener('click', async () => {
-    const email = emailInput.value.trim();
-    const password = passwordInput.value.trim();
-
-    if(!email || !password) {
-      showToast("Fields missing validation updates.");
-      return;
-    }
-
+  btnGoogleAuth.addEventListener('click', async () => {
     try {
-      if (authMode === 'register') {
-        await createUserWithEmailAndPassword(auth, email, password);
-        showToast("Registration Complete!");
-      } else if (authMode === 'login') {
-        await signInWithEmailAndPassword(auth, email, password);
-        showToast("Access Verified!");
-      } else if (authMode === 'linking' && pendingGoogleCredential) {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        await linkWithCredential(userCredential.user, pendingGoogleCredential);
-        showToast("Google Account Linked and Authenticated Successfully!");
-        pendingGoogleCredential = null;
-      }
+      await signInWithPopup(auth, googleProvider);
+      showToast("Access Authenticated via Google.");
     } catch (error) {
-      console.error(error);
+      console.error("Google Auth Error: ", error);
       showToast(error.message.replace("Firebase: ", ""));
     }
   });
 
- btnGoogleAuth.addEventListener('click', async () => {
-    try {
-      // 1. Try signing in with Google
-      const result = await signInWithPopup(auth, googleProvider);
-      showToast("Access Authenticated via Google.");
-    } catch (error) {
-      console.error("Google Auth Error: ", error);
-      
-      // 2. If the account already exists with a different credential (Email & Password)
-      if (error.code === 'auth/account-exists-with-different-credential') {
-        const email = error.customData?.email;
-        
-        // Ask the user to sign in using their password first, then we link Google to it!
-        showToast("Email already registered with password. Please sign in with Email & Password first.");
-        
-        // Automatically switch the UI back to sign in view and pre-fill the email
-        authMode = 'login';
-        authHeading.textContent = "Access Gateway";
-        authSubheading.textContent = "Verify credentials to connect to Cloud Service.";
-        btnAuthSubmit.textContent = "Sign In";
-        authToggle.textContent = "Need an account? Register instead";
-        authEmail.value = email || "";
-        authPassword.value = "";
-        authPassword.focus();
-        
-      } else {
-        showToast(error.message.replace("Firebase: ", ""));
-      }
-    }
-  });
   navLogout.addEventListener('click', async () => {
     try {
       await signOut(auth);
