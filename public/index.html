@@ -1412,22 +1412,36 @@
     }
   });
 
-  btnGoogleAuth.addEventListener('click', async () => {
+ btnGoogleAuth.addEventListener('click', async () => {
     try {
-      await signInWithPopup(auth, googleProvider);
+      // 1. Try signing in with Google
+      const result = await signInWithPopup(auth, googleProvider);
       showToast("Access Authenticated via Google.");
     } catch (error) {
       console.error("Google Auth Error: ", error);
       
-      // If the email is already registered using a password, show this helpful message
+      // 2. If the account already exists with a different credential (Email & Password)
       if (error.code === 'auth/account-exists-with-different-credential') {
-        showToast("Account already exists with password. Please sign in with Email & Password.");
+        const email = error.customData?.email;
+        
+        // Ask the user to sign in using their password first, then we link Google to it!
+        showToast("Email already registered with password. Please sign in with Email & Password first.");
+        
+        // Automatically switch the UI back to sign in view and pre-fill the email
+        authMode = 'login';
+        authHeading.textContent = "Access Gateway";
+        authSubheading.textContent = "Verify credentials to connect to Cloud Service.";
+        btnAuthSubmit.textContent = "Sign In";
+        authToggle.textContent = "Need an account? Register instead";
+        authEmail.value = email || "";
+        authPassword.value = "";
+        authPassword.focus();
+        
       } else {
         showToast(error.message.replace("Firebase: ", ""));
       }
     }
   });
-
   navLogout.addEventListener('click', async () => {
     try {
       await signOut(auth);
