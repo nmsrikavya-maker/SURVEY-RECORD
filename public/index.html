@@ -815,7 +815,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, linkWithCredential, EmailAuthProvider } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCHmdn_SxpCWrwlHEb_H4bdp2_vsL0ei2c",
@@ -887,6 +887,7 @@
   let searchTerm = '';
   let sortMode = 'newest';
   let pendingDeleteId = null;
+  let pendingGoogleCredential = null;
 
   function spawnBubbles(){
     const count = 9;
@@ -1362,6 +1363,10 @@
   });
 
   function handleAuthFormToggle() {
+    if (authMode === 'linking') {
+      pendingGoogleCredential = null;
+      authMode = 'login';
+    }
     if (authMode === 'register') {
       authMode = 'login';
       authTitle.textContent = '🔒 Secure Sign In';
@@ -1392,9 +1397,14 @@
       if (authMode === 'register') {
         await createUserWithEmailAndPassword(auth, email, password);
         showToast("Registration Complete!");
-      } else {
+      } else if (authMode === 'login') {
         await signInWithEmailAndPassword(auth, email, password);
         showToast("Access Verified!");
+      } else if (authMode === 'linking' && pendingGoogleCredential) {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        await linkWithCredential(userCredential.user, pendingGoogleCredential);
+        showToast("Google Account Linked and Authenticated Successfully!");
+        pendingGoogleCredential = null;
       }
     } catch (error) {
       console.error(error);
@@ -1402,13 +1412,31 @@
     }
   });
 
-  btnGoogleAuth.addEventListener('click', async () => {
+  btnGoogleAuth.addEventListener("click", async () => {
     try {
-      await signInWithPopup(auth, googleProvider);
-      showToast("Access Authenticated via Google.");
+      const result = await signInWithPopup(auth, googleProvider);
+      showToast("Google Sign-In Successful!");
     } catch (error) {
       console.error(error);
-      showToast(error.message.replace("Firebase: ", ""));
+      switch (error.code) {
+        case "auth/account-exists-with-different-credential":
+          showToast(
+            "This email is already registered using Email & Password. Please sign in using Email & Password first."
+          );
+          break;
+        case "auth/popup-closed-by-user":
+          showToast("Google Sign-In cancelled.");
+          break;
+        case "auth/cancelled-popup-request":
+          showToast("Another Google Sign-In request is already in progress.");
+          break;
+        case "auth/popup-blocked":
+          showToast("Popup blocked. Please allow popups and try again.");
+          break;
+        default:
+          showToast(error.message.replace("Firebase: ", ""));
+          break;
+      }
     }
   });
 
