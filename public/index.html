@@ -1412,30 +1412,18 @@
     }
   });
 
-  btnGoogleAuth.addEventListener("click", async () => {
+  btnGoogleAuth.addEventListener('click', async () => {
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      showToast("Google Sign-In Successful!");
+      await signInWithPopup(auth, googleProvider);
+      showToast("Access Authenticated via Google.");
     } catch (error) {
-      console.error(error);
-      switch (error.code) {
-        case "auth/account-exists-with-different-credential":
-          showToast(
-            "This email is already registered using Email & Password. Please sign in using Email & Password first."
-          );
-          break;
-        case "auth/popup-closed-by-user":
-          showToast("Google Sign-In cancelled.");
-          break;
-        case "auth/cancelled-popup-request":
-          showToast("Another Google Sign-In request is already in progress.");
-          break;
-        case "auth/popup-blocked":
-          showToast("Popup blocked. Please allow popups and try again.");
-          break;
-        default:
-          showToast(error.message.replace("Firebase: ", ""));
-          break;
+      console.error("Google Auth Error: ", error);
+      
+      // If the email is already registered using a password, show this helpful message
+      if (error.code === 'auth/account-exists-with-different-credential') {
+        showToast("Account already exists with password. Please sign in with Email & Password.");
+      } else {
+        showToast(error.message.replace("Firebase: ", ""));
       }
     }
   });
