@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TIDCO HOUSES SANCTION LIST</title>
+<title>Survey Data</title>
 <style>
   :root{
     --sky-1:#eef8fe;
@@ -679,19 +680,29 @@
     margin: 40px auto;
     padding: 10px;
   }
+  .auth-toggle-hint {
+    text-align: center;
+    margin-top: 18px;
+    font-size: 13px;
+    color: var(--blue-deep);
+    font-weight: 600;
+  }
+  .auth-toggle-hint span {
+    color: var(--accent-2);
+    text-decoration: underline;
+    cursor: pointer;
+  }
   .auth-stack-layout {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    margin-top: 14px;
+    margin-top: 24px;
   }
   .google-auth-btn {
     background: #ffffff !important;
     color: var(--ink) !important;
     border: 1.5px solid var(--line) !important;
     box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-    padding: 14px 20px !important;
-    font-size: 15px !important;
   }
 </style>
 </head>
@@ -719,7 +730,7 @@
       <div class="brand-left">
         <div class="brand-mark">☁️</div>
         <div>
-          <div class="brand-title">TIDCO HOUSES SANCTION LIST</div>
+          <div class="brand-title">Survey Data Entry</div>
           <div class="brand-sub">Beneficiary records &amp; enquiries</div>
         </div>
       </div>
@@ -733,13 +744,28 @@
   </div>
 
   <div id="authenticationScreenGateway" class="auth-container" style="display: none;">
-    <div class="card" style="text-align: center;">
-      <h1 id="authTitle" style="justify-content: center;">🔒 Secure Access</h1>
-      <p class="lead" id="authSubtitle" style="margin-bottom: 30px;">Sign in with your Google account to access database records.</p>
+    <div class="card">
+      <h1 id="authTitle">🔒 Secure Registration</h1>
+      <p class="lead" id="authSubtitle">Create a security account to access system database records.</p>
       
+      <div class="grid">
+        <div class="field full">
+          <label for="authEmailInput">Email Address</label>
+          <input type="email" id="authEmailInput" placeholder="name@example.com">
+        </div>
+        <div class="field full">
+          <label for="authPasswordInput">Password</label>
+          <input type="password" id="authPasswordInput" placeholder="••••••••">
+        </div>
+      </div>
+
       <div class="auth-stack-layout">
+        <button class="primary" id="btnSubmitCredential">Register Account</button>
+        <div style="text-align: center; color: var(--muted); font-size: 12px; font-weight: bold; margin: 4px 0;">OR</div>
         <button class="primary google-auth-btn" id="btnGoogleAuth">Continue with Google</button>
       </div>
+
+      <p class="auth-toggle-hint" id="authToggleMessage">Already have an account? <span id="authToggleAction">Sign In</span></p>
     </div>
   </div>
 </div>
@@ -759,7 +785,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-  import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCHmdn_SxpCWrwlHEb_H4bdp2_vsL0ei2c",
@@ -1122,7 +1148,7 @@
     app.innerHTML = `
       <div class="card">
         <h1>🔎 Enquiries</h1>
-        <p class="lead">Your saved survey records. Search by fields — click a name to view full details.</p>
+        <p class="lead">Your saved survey records. Search by name, phone, aadhar, address, bank — click a name to view full details.</p>
         <div class="enquiry-toolbar">
           <div class="search-bar">
             <span class="search-icon">&#128269;</span>
@@ -1288,14 +1314,63 @@
     else if(view === 'details') renderDetails();
   }
 
+  let authMode = 'register'; 
+  const emailInput = document.getElementById('authEmailInput');
+  const passwordInput = document.getElementById('authPasswordInput');
+  const btnSubmitCredential = document.getElementById('btnSubmitCredential');
   const btnGoogleAuth = document.getElementById('btnGoogleAuth');
+  const authToggleAction = document.getElementById('authToggleAction');
+  
+  const authTitle = document.getElementById('authTitle');
+  const authSubtitle = document.getElementById('authSubtitle');
+  const authToggleMessage = document.getElementById('authToggleMessage');
+
+  authToggleAction.addEventListener('click', () => {
+    if (authMode === 'register') {
+      authMode = 'login';
+      authTitle.textContent = '🔒 Secure Sign In';
+      authSubtitle.textContent = 'Please check credentials to verify database permission paths.';
+      btnSubmitCredential.textContent = 'Sign In';
+      authToggleMessage.innerHTML = `New to the platform? <span id="authToggleAction">Register Account</span>`;
+    } else {
+      authMode = 'register';
+      authTitle.textContent = '🔒 Secure Registration';
+      authSubtitle.textContent = 'Create a security account to access system database records.';
+      btnSubmitCredential.textContent = 'Register Account';
+      authToggleMessage.innerHTML = `Already have an account? <span id="authToggleAction">Sign In</span>`;
+    }
+    document.getElementById('authToggleAction').addEventListener('click', arguments.callee);
+  });
+
+  btnSubmitCredential.addEventListener('click', async () => {
+    const email = emailInput.value.trim();
+    const password = passwordInput.value.trim();
+
+    if(!email || !password) {
+      showToast("Fields missing validation updates.");
+      return;
+    }
+
+    try {
+      if (authMode === 'register') {
+        await createUserWithEmailAndPassword(auth, email, password);
+        showToast("Registration Complete!");
+      } else {
+        await signInWithEmailAndPassword(auth, email, password);
+        showToast("Access Verified!");
+      }
+    } catch (error) {
+      console.error(error);
+      showToast(error.message.replace("Firebase: ", ""));
+    }
+  });
 
   btnGoogleAuth.addEventListener('click', async () => {
     try {
       await signInWithPopup(auth, googleProvider);
       showToast("Access Authenticated via Google.");
     } catch (error) {
-      console.error("Google Auth Error: ", error);
+      console.error(error);
       showToast(error.message.replace("Firebase: ", ""));
     }
   });
